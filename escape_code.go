@@ -1,8 +1,6 @@
 package logftext
 
 import (
-	"os"
-
 	"github.com/ssgreg/logf"
 )
 
@@ -17,29 +15,6 @@ import (
 // and left-bracket characters specify an alphanumeric code that controls
 // a keyboard or display function.
 type EscapeCode int8
-
-// checkNoColor checks for NO_COLORS environment variable to disable color
-// output.
-//
-// All command-line software which outputs text with ANSI color added should
-// check for the presence of a NO_COLOR environment variable that, when
-// present (regardless of its value), prevents the addition of ANSI color.
-func checkNoColor() bool {
-	_, ok := os.LookupEnv("NO_COLOR")
-
-	return ok
-}
-
-// SetNoColor allows to enable/disable 'no color'  mode overriding default
-// noColor value.
-func SetNoColor(no bool) {
-	noColor = no
-}
-
-// GetNoColor returns current 'no color' mode.
-func GetNoColor() bool {
-	return noColor
-}
 
 // Text colors.
 const (
@@ -103,10 +78,15 @@ const (
 	EscBrightBgWhite
 )
 
-// AtEscapeSequence calls the given fn, wrapped with the escape sequence,
+// EscapeSequence allows to construct escape sequences.
+type EscapeSequence struct {
+	NoColor bool
+}
+
+// At calls the given fn, wrapped with the escape sequence,
 // based on the given code.
-func AtEscapeSequence(buf *logf.Buffer, clr EscapeCode, fn func()) {
-	if noColor {
+func (es EscapeSequence) At(buf *logf.Buffer, clr EscapeCode, fn func()) {
+	if es.NoColor {
 		fn()
 
 		return
@@ -119,10 +99,10 @@ func AtEscapeSequence(buf *logf.Buffer, clr EscapeCode, fn func()) {
 	buf.AppendString("\x1b[0m")
 }
 
-// AtEscapeSequence2 calls the given fn, wrapped with the escape sequence,
+// At2 calls the given fn, wrapped with the escape sequence,
 // based on the given codes.
-func AtEscapeSequence2(buf *logf.Buffer, clr1, clr2 EscapeCode, fn func()) {
-	if noColor {
+func (es EscapeSequence) At2(buf *logf.Buffer, clr1, clr2 EscapeCode, fn func()) {
+	if es.NoColor {
 		fn()
 
 		return
@@ -137,10 +117,10 @@ func AtEscapeSequence2(buf *logf.Buffer, clr1, clr2 EscapeCode, fn func()) {
 	buf.AppendString("\x1b[0m")
 }
 
-// AtEscapeSequence3 calls the given fn, wrapped with the escape sequence,
+// At3 calls the given fn, wrapped with the escape sequence,
 // based on the given codes.
-func AtEscapeSequence3(buf *logf.Buffer, clr1, clr2, clr3 EscapeCode, fn func()) {
-	if noColor {
+func (es EscapeSequence) At3(buf *logf.Buffer, clr1, clr2, clr3 EscapeCode, fn func()) {
+	if es.NoColor {
 		fn()
 
 		return
@@ -156,7 +136,3 @@ func AtEscapeSequence3(buf *logf.Buffer, clr1, clr2, clr3 EscapeCode, fn func())
 	fn()
 	buf.AppendString("\x1b[0m")
 }
-
-var (
-	noColor = checkNoColor()
-)

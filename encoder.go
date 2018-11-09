@@ -6,13 +6,18 @@ import (
 	"github.com/ssgreg/logf"
 )
 
-// NewEncoder creates the new instance of the text Encoder with the
-// given EncoderConfig. It delegates field encoding to the internal
-// json Encoder.
+// NewEncoder creates the new instance of the text Encoder with the given
+// EncoderConfig. It delegates field encoding to the internal json Encoder.
+//
+// It's a caller responsibility to handle colored output in a prover way.
+// The best choice here is to use NewAppender function instead of of a
+// creation of Encoder by Yourselves.
 var NewEncoder = encoderGetter(
 	func(cfg EncoderConfig) logf.Encoder {
+		cfg = cfg.WithDefaults()
+
 		return &encoder{
-			cfg.WithDefaults(),
+			cfg,
 			logf.NewJSONTypeEncoderFactory(logf.JSONEncoderConfig{
 				EncodeTime:     cfg.EncodeTime,
 				EncodeDuration: cfg.EncodeDuration,
@@ -21,7 +26,7 @@ var NewEncoder = encoderGetter(
 			nil,
 			logf.NewCache(100),
 			0,
-			false,
+			EscapeSequence{*cfg.NoColor},
 		}
 	},
 )
@@ -39,7 +44,8 @@ type encoder struct {
 	buf         *logf.Buffer
 	cache       *logf.Cache
 	startBufLen int
-	isField     bool
+
+	eseq EscapeSequence
 }
 
 func (f *encoder) Encode(buf *logf.Buffer, e logf.Entry) error {
@@ -48,18 +54,18 @@ func (f *encoder) Encode(buf *logf.Buffer, e logf.Entry) error {
 	f.startBufLen = f.buf.Len()
 
 	// Time.
-	AtEscapeSequence(f.buf, EscBrightBlack, func() {
+	f.eseq.At(f.buf, EscBrightBlack, func() {
 		appendTime(e.Time, f.buf, f.EncodeTime, f.mf.TypeEncoder(buf))
 	})
 
 	// Level.
 	f.appendSeparator()
-	appendLevel(buf, e.Level)
+	appendLevel(buf, f.eseq, e.Level)
 
 	// Logger name.
 	if !f.DisableFieldName && e.LoggerName != "" {
 		f.appendSeparator()
-		AtEscapeSequence(f.buf, EscBrightBlack, func() {
+		f.eseq.At(f.buf, EscBrightBlack, func() {
 			f.buf.AppendString(e.LoggerName)
 			f.buf.AppendByte(':')
 		})
@@ -67,7 +73,7 @@ func (f *encoder) Encode(buf *logf.Buffer, e logf.Entry) error {
 
 	// Message.
 	f.appendSeparator()
-	AtEscapeSequence(f.buf, EscBrightWhite, func() {
+	f.eseq.At(f.buf, EscBrightWhite, func() {
 		f.buf.AppendString(e.Text)
 	})
 
@@ -92,7 +98,7 @@ func (f *encoder) Encode(buf *logf.Buffer, e logf.Entry) error {
 
 	// Caller.
 	if !f.DisableFieldCaller && e.Caller.Specified {
-		AtEscapeSequence(f.buf, EscBrightBlack, func() {
+		f.eseq.At(f.buf, EscBrightBlack, func() {
 			f.appendSeparator()
 			f.buf.AppendByte('@')
 			f.EncodeCaller(e.Caller, f.mf.TypeEncoder(f.buf))
@@ -276,41 +282,37 @@ func (f *encoder) empty() bool {
 
 func (f *encoder) addKey(k string) {
 	f.appendSeparator()
-	AtEscapeSequence(f.buf, EscGreen, func() {
+	f.eseq.At(f.buf, EscGreen, func() {
 		f.buf.AppendString(k)
 	})
 
-	AtEscapeSequence(f.buf, EscBrightBlack, func() {
+	f.eseq.At(f.buf, EscBrightBlack, func() {
 		f.buf.AppendByte('=')
 	})
 }
 
-func (f *encoder) setIsField(isField bool) {
-	f.isField = isField
-}
-
-func appendLevel(buf *logf.Buffer, lvl logf.Level) {
+func appendLevel(buf *logf.Buffer, eseq EscapeSequence, lvl logf.Level) {
 	buf.AppendByte('|')
 
 	switch lvl {
 	case logf.LevelDebug:
-		AtEscapeSequence(buf, EscMagenta, func() {
+		eseq.At(buf, EscMagenta, func() {
 			buf.AppendString("DEBU")
 		})
 	case logf.LevelInfo:
-		AtEscapeSequence(buf, EscCyan, func() {
+		eseq.At(buf, EscCyan, func() {
 			buf.AppendString("INFO")
 		})
 	case logf.LevelWarn:
-		AtEscapeSequence2(buf, EscBrightYellow, EscReverse, func() {
+		eseq.At2(buf, EscBrightYellow, EscReverse, func() {
 			buf.AppendString("WARN")
 		})
 	case logf.LevelError:
-		AtEscapeSequence2(buf, EscBrightRed, EscReverse, func() {
+		eseq.At2(buf, EscBrightRed, EscReverse, func() {
 			buf.AppendString("ERRO")
 		})
 	default:
-		AtEscapeSequence(buf, EscBrightRed, func() {
+		eseq.At(buf, EscBrightRed, func() {
 			buf.AppendString("UNKN")
 		})
 	}

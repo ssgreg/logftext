@@ -8,6 +8,9 @@ import (
 
 // EncoderConfig allows to configure text Encoder.
 type EncoderConfig struct {
+	// NoColor enables/disables colored output.
+	NoColor *bool
+
 	DisableFieldName   bool
 	DisableFieldCaller bool
 
@@ -20,6 +23,11 @@ type EncoderConfig struct {
 // WithDefaults returns the new config in which all uninitialized fields are
 // filled with their default values.
 func (c EncoderConfig) WithDefaults() EncoderConfig {
+	if c.NoColor == nil {
+		noColor := false
+		c.NoColor = &noColor
+	}
+
 	// Handle defaults for type encoder.
 	if c.EncodeDuration == nil {
 		c.EncodeDuration = logf.StringDurationEncoder
