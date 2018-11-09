@@ -39,7 +39,7 @@ func main() {
 ```
 
 The output example is:
-(https://user-images.githubusercontent.com/1574981/48273352-bed64f00-e451-11e8-9f5d-7ef1d76d222d.png)
+![Alt text](https://user-images.githubusercontent.com/1574981/48273352-bed64f00-e451-11e8-9f5d-7ef1d76d222d.png)
 
 ## TODOs
 
