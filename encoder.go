@@ -209,6 +209,11 @@ func (f *encoder) EncodeFieldBools(k string, v []bool) {
 	f.mf.TypeEncoder(f.buf).EncodeTypeBools(v)
 }
 
+func (f *encoder) EncodeFieldStrings(k string, v []string) {
+	f.addKey(k)
+	f.mf.TypeEncoder(f.buf).EncodeTypeStrings(v)
+}
+
 func (f *encoder) EncodeFieldInts64(k string, v []int64) {
 	f.addKey(k)
 	f.mf.TypeEncoder(f.buf).EncodeTypeInts64(v)
